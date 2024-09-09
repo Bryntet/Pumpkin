@@ -84,7 +84,7 @@ impl Player {
         );
         entity.on_ground = position.ground;
         let on_ground = entity.on_ground;
-        let entity_id = entity.entity_id;
+        let entity_id = entity.id;
         let (x, y, z) = entity.pos.into();
         let (lastx, lasty, lastz) = self.last_position.into();
         let world = self.entity.world.clone();
@@ -145,7 +145,7 @@ impl Player {
         entity.pitch = wrap_degrees(position_rotation.pitch).clamp(-90.0, 90.0) % 360.0;
 
         let on_ground = entity.on_ground;
-        let entity_id = entity.entity_id;
+        let entity_id = entity.id;
         let (x, y, z) = entity.pos.into();
         let (lastx, lasty, lastz) = self.last_position.into();
         let yaw = modulus(entity.yaw * 256.0 / 360.0, 256.0);
@@ -199,7 +199,7 @@ impl Player {
         entity.pitch = wrap_degrees(rotation.pitch).clamp(-90.0, 90.0) % 360.0;
         // send new position to all other players
         let on_ground = entity.on_ground;
-        let entity_id = entity.entity_id;
+        let entity_id = entity.id;
         let yaw = modulus(entity.yaw * 256.0 / 360.0, 256.0);
         let pitch = modulus(entity.pitch * 256.0 / 360.0, 256.0);
         // let head_yaw = modulus(entity.head_yaw * 256.0 / 360.0, 256.0);
@@ -223,7 +223,7 @@ impl Player {
     }
 
     pub async fn handle_player_command(&mut self, _server: &Arc<Server>, command: SPlayerCommand) {
-        if command.entity_id != self.entity.entity_id.into() {
+        if command.entity_id != self.entity.id.into() {
             return;
         }
 

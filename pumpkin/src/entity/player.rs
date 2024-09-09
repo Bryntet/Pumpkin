@@ -25,6 +25,7 @@ use pumpkin_protocol::{
 };
 
 use pumpkin_protocol::server::play::SCloseContainer;
+use pumpkin_protocol::uuid::UUID;
 use pumpkin_world::item::ItemStack;
 
 use crate::{
@@ -94,21 +95,24 @@ impl Player {
         entity_id: EntityId,
         gamemode: GameMode,
     ) -> Self {
-        let gameprofile = match client.gameprofile.clone() {
-            Some(profile) => profile,
-            None => {
-                log::error!("No gameprofile?. Impossible");
-                GameProfile {
-                    id: uuid::Uuid::new_v4(),
-                    name: "".to_string(),
-                    properties: vec![],
-                    profile_actions: None,
-                }
+        let gameprofile = client.gameprofile.clone().unwrap_or_else(|| {
+            log::error!("No gameprofile?. Impossible");
+            GameProfile {
+                id: uuid::Uuid::new_v4(),
+                name: "".to_string(),
+                properties: vec![],
+                profile_actions: None,
             }
-        };
+        });
         let config = client.config.clone().unwrap_or_default();
         Self {
-            entity: Entity::new(entity_id, world, EntityType::Player, 1.62),
+            entity: Entity::new(
+                entity_id,
+                UUID(gameprofile.id),
+                world,
+                EntityType::Player,
+                1.62,
+            ),
             config,
             gameprofile,
             client,
@@ -136,7 +140,7 @@ impl Player {
     }
 
     pub fn entity_id(&self) -> EntityId {
-        self.entity.entity_id
+        self.entity.id
     }
 
     pub fn send_abilties_update(&mut self) {

@@ -1,20 +1,23 @@
-use std::sync::Arc;
-
+use crate::{client::Client, world::World};
+use num_traits::ToPrimitive;
 use pumpkin_core::math::{
     get_section_cord, position::WorldPosition, vector2::Vector2, vector3::Vector3,
 };
 use pumpkin_entity::{entity_type::EntityType, pose::EntityPose, EntityId};
+use pumpkin_protocol::client::play::CSpawnEntity;
+use pumpkin_protocol::uuid::UUID;
 use pumpkin_protocol::{
     client::play::{CSetEntityMetadata, Metadata},
     VarInt,
 };
+use std::sync::Arc;
 
-use crate::{client::Client, world::World};
-
+pub mod item_entity;
 pub mod player;
 
 pub struct Entity {
-    pub entity_id: EntityId,
+    pub id: EntityId,
+    pub uuid: UUID,
     pub entity_type: EntityType,
     pub world: Arc<tokio::sync::Mutex<World>>,
 
@@ -42,12 +45,14 @@ pub struct Entity {
 impl Entity {
     pub fn new(
         entity_id: EntityId,
+        uuid: UUID,
         world: Arc<tokio::sync::Mutex<World>>,
         entity_type: EntityType,
         standing_eye_height: f32,
     ) -> Self {
         Self {
-            entity_id,
+            id: entity_id,
+            uuid,
             entity_type,
             on_ground: false,
             pos: Vector3::new(0.0, 0.0, 0.0),
@@ -85,6 +90,12 @@ impl Entity {
                 }
             }
         }
+    }
+
+    pub fn advance_with_velocity(&mut self) {
+        let pos = self.pos;
+        let velocity = self.velocity;
+        self.set_pos(pos.x + velocity.x, pos.y + velocity.y, pos.z + velocity.z)
     }
 
     pub fn knockback(&mut self, strength: f64, x: f64, z: f64) {
@@ -153,7 +164,7 @@ impl Entity {
         } else {
             b &= !(1 << index);
         }
-        let packet = CSetEntityMetadata::new(self.entity_id.into(), Metadata::new(0, 0.into(), b));
+        let packet = CSetEntityMetadata::new(self.id.into(), Metadata::new(0, 0.into(), b));
         client.send_packet(&packet);
         self.world
             .lock()
@@ -165,7 +176,7 @@ impl Entity {
         self.pose = pose;
         let pose = self.pose as i32;
         let packet = CSetEntityMetadata::<VarInt>::new(
-            self.entity_id.into(),
+            self.id.into(),
             Metadata::new(6, 20.into(), (pose).into()),
         );
         client.send_packet(&packet);
@@ -173,5 +184,42 @@ impl Entity {
             .lock()
             .await
             .broadcast_packet(&[client.token], &packet)
+    }
+
+    // This gets run once per "tick" (tokio task sleeping to imitate tick)
+    pub fn apply_gravity(&mut self) {
+        self.velocity.y -= self.entity_type.gravity()
+    }
+}
+
+impl From<&Entity> for CSpawnEntity {
+    fn from(entity: &Entity) -> Self {
+        CSpawnEntity {
+            entity_id: entity.id.into(),
+            entity_uuid: entity.uuid.clone(),
+            entity_type: VarInt::from(entity.entity_type as i32),
+            x: entity.pos.x,
+            y: entity.pos.y,
+            z: entity.pos.z,
+            pitch: entity
+                .pitch
+                .floor()
+                .to_u8()
+                .expect("Should be possible to convert pitch to u8"),
+            yaw: entity
+                .yaw
+                .floor()
+                .to_u8()
+                .expect("Should be possible to convert yaw to u8"),
+            head_yaw: entity
+                .head_yaw
+                .floor()
+                .to_u8()
+                .expect("Should be possible to convert head_yaw to u8"),
+            data: VarInt(0),
+            velocity_x: entity.velocity.x.floor() as i16,
+            velocity_y: entity.velocity.y.floor() as i16,
+            velocity_z: entity.velocity.z.floor() as i16,
+        }
     }
 }

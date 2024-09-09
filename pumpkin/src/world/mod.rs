@@ -164,21 +164,7 @@ impl World {
         self.broadcast_packet(
             &[player.client.token],
             // TODO: add velo
-            &CSpawnEntity::new(
-                entity_id.into(),
-                UUID(gameprofile.id),
-                (EntityType::Player as i32).into(),
-                x,
-                y,
-                z,
-                pitch,
-                yaw,
-                yaw,
-                0.into(),
-                0.0,
-                0.0,
-                0.0,
-            ),
+            &CSpawnEntity::from(&player.entity),
         );
         // spawn players for our client
         let token = player.client.token;
@@ -186,21 +172,9 @@ impl World {
             let existing_player = existing_player.as_ref().lock().unwrap();
             let entity = &existing_player.entity;
             let gameprofile = &existing_player.gameprofile;
-            player.client.send_packet(&CSpawnEntity::new(
-                existing_player.entity_id().into(),
-                UUID(gameprofile.id),
-                (EntityType::Player as i32).into(),
-                entity.pos.x,
-                entity.pos.y,
-                entity.pos.z,
-                entity.yaw,
-                entity.pitch,
-                entity.head_yaw,
-                0.into(),
-                0.0,
-                0.0,
-                0.0,
-            ))
+            player
+                .client
+                .send_packet(&CSpawnEntity::from(&player.entity))
         }
         // entity meta data
         // set skin parts
