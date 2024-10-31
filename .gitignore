@@ -105,6 +105,7 @@ Cargo.lock
 # === PROJECT SPECIFIC ===
 plugins/*
 world/*
+assets-build/*
 
 # project's configurations
 configuration.toml

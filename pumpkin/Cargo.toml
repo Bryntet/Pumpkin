@@ -65,3 +65,6 @@ simple_logger = { version = "5.0.0", features = ["threads"] }
 
 # commands
 async-trait = "0.1.83"
+
+[build-dependencies]
+pumpkin-build = {path = "../pumpkin-build"}
